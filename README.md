@@ -29,24 +29,12 @@ The API allows users to:
 ```
 src/
 modules/
-  github/
-  github.routes.ts
-  github.service.ts
-  github.client.ts
-
-kubernetes/
-  kubernetes.routes.ts
-  kubernetes.service.ts
-
-deployment/
-  deployment.routes.ts
-  deployment.service.ts
-
+    github/
+    kubernetes/
+    deployment/
 shared/
-types/
-errors/
-utils/
-
+    error/
+    utils/
 server.ts
 ```
 
@@ -57,7 +45,7 @@ server.ts
 ### 1. Clone the repository
 
 ```
-git clone <your-repo-url>
+git clone git@github.com:Jorgefiestas/northflank-take-home-assignment.git
 cd northflank-assignment
 ```
 
@@ -135,9 +123,9 @@ Body:
 
 ```
 {
-"name": "string",
-"replicas": number,
-"annotations": { "key": "value" }
+    "name": "string",
+    "replicas": number,
+    "annotations": { "key": "value" }
 }
 
 ```
@@ -156,9 +144,9 @@ Body:
 
 ```
 {
-"name": "string",
-"namespace": "string",
-"replicas": number
+    "name": "string",
+    "namespace": "string",
+    "replicas": number
 }
 
 ```
@@ -173,8 +161,8 @@ Body:
 
 ```
 {
-"name": "string",
-"namespace": "string"
+    "name": "string",
+    "namespace": "string"
 }
 ```
 
@@ -185,17 +173,17 @@ Body:
 #### Deploy from YAML
 
 ```
-POST /deployment/from-repo
+POST /deployment/from-github
 ```
 
 Body:
 
 ```
 {
-"owner": "string",
-"repo": "string",
-"branch": "string",
-"path": "string"
+    "owner": "string",
+    "repo": "string",
+    "branch": "string",
+    "path": "string"
 }
 ```
 
