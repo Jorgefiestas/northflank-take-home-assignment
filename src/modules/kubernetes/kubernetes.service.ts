@@ -1,171 +1,45 @@
-import k8s from "@kubernetes/client-node";
-
 import { mapKubernetesError } from "./kubernetes-error.mapper";
 import { k8sAppsApi, k8sCoreApi } from "./kubernetes.client";
 import { AppError } from "../../shared/error/app-error";
+import { DeployParameters } from "./kubernetes.types";
+import {
+  applyConfigMap,
+  applyDeployment,
+  applyService,
+  ensureNamespace,
+} from "./kubernetes.apply";
+import {
+  buildConfigMap,
+  buildDeployment,
+  buildService,
+} from "./kubernetes.manifests";
 
-export async function deployNginx({
-  name,
-  namespace,
-  replicas = 1,
-  annotations = {},
-  content,
-}: {
-  name: string;
-  namespace: string;
-  replicas?: number;
-  annotations?: Record<string, string>;
-  content?: string;
-}) {
-  const labels = { app: name };
-  const configMapName = `${name}-content`;
-
-  const namespaceManifest: k8s.V1Namespace = {
-    metadata: { name: namespace },
-  };
-
-  const deployment: k8s.V1Deployment = {
-    metadata: { name },
-    spec: {
-      replicas,
-      selector: { matchLabels: labels },
-      template: {
-        metadata: {
-          labels,
-          annotations,
-        },
-        spec: {
-          containers: [
-            {
-              name: "nginx",
-              image: "nginx:latest",
-              ports: [{ containerPort: 80 }],
-              ...(content
-                ? {
-                    volumeMounts: [
-                      {
-                        name: "content-volume",
-                        mountPath: "/usr/share/nginx/html/index.html",
-                        subPath: "index.html",
-                      },
-                    ],
-                  }
-                : {}),
-            },
-          ],
-          ...(content
-            ? {
-                volumes: [
-                  {
-                    name: "content-volume",
-                    configMap: {
-                      name: configMapName,
-                    },
-                  },
-                ],
-              }
-            : {}),
-        },
-      },
-    },
-  };
-
-  const service: k8s.V1Service = {
-    metadata: { name },
-    spec: {
-      selector: labels,
-      ports: [
-        {
-          port: 80,
-          targetPort: 80,
-        },
-      ],
-      type: "ClusterIP",
-    },
-  };
+export async function deployNginx(params: DeployParameters) {
+  const { namespace, content } = params;
 
   try {
-    try {
-      await k8sCoreApi.createNamespace({
-        body: namespaceManifest,
-      });
-    } catch (error: any) {
-      if (error?.response?.statusCode !== 409) {
-        throw error;
-      }
+    await ensureNamespace(namespace);
+
+    if (content) {
+      const configMap = buildConfigMap(params);
+      await applyConfigMap(namespace, configMap);
     }
 
-    if (content !== undefined) {
-      const configMap: k8s.V1ConfigMap = {
-        metadata: { name: configMapName },
-        data: {
-          "index.html": content,
-        },
-      };
+    const deployment = buildDeployment(params);
+    await applyDeployment(namespace, deployment);
 
-      try {
-        await k8sCoreApi.createNamespacedConfigMap({
-          namespace,
-          body: configMap,
-        });
-      } catch (error: any) {
-        if (error?.response?.statusCode === 409) {
-          await k8sCoreApi.replaceNamespacedConfigMap({
-            name: configMapName,
-            namespace,
-            body: configMap,
-          });
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    try {
-      await k8sAppsApi.createNamespacedDeployment({
-        namespace,
-        body: deployment,
-      });
-    } catch (error: any) {
-      if (error?.response?.statusCode === 409) {
-        await k8sAppsApi.replaceNamespacedDeployment({
-          name,
-          namespace,
-          body: deployment,
-        });
-      } else {
-        throw error;
-      }
-    }
-
-    try {
-      await k8sCoreApi.createNamespacedService({
-        namespace,
-        body: service,
-      });
-    } catch (error: any) {
-      if (error?.response?.statusCode === 409) {
-        await k8sCoreApi.replaceNamespacedService({
-          name,
-          namespace,
-          body: service,
-        });
-      } else {
-        throw error;
-      }
-    }
+    const service = buildService(params);
+    await applyService(namespace, service);
 
     return {
-      name,
+      name: params.name,
       namespace,
-      replicas,
-      annotations,
+      replicas: params.replicas ?? 1,
+      annotations: params.annotations ?? {},
       hasCustomContent: content !== undefined,
     };
   } catch (error) {
-    if (error instanceof AppError) {
-      throw error;
-    }
+    if (error instanceof AppError) throw error;
     throw mapKubernetesError(error);
   }
 }

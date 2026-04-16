@@ -16,7 +16,7 @@ export async function kubernetesRoutes(app: FastifyInstance) {
     });
   });
 
-  app.delete("/deployments", async (request) => {
+  app.delete("/deploy", async (request) => {
     const { name, namespace } = parseDeleteDeploymentRequest(request.body);
 
     return await deleteNginx({ name, namespace });

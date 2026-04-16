@@ -24,22 +24,6 @@ The API allows users to:
 
 ---
 
-## Project Structure
-
-```
-src/
-modules/
-    github/
-    kubernetes/
-    deployment/
-shared/
-    error/
-    utils/
-server.ts
-```
-
----
-
 ## Setup
 
 ### 1. Clone the repository
@@ -118,6 +102,11 @@ Query parameters:
 ```
 PUT /github/repos/:owner/:repo/file
 ```
+
+Query parameters:
+
+- `branch`
+- `path`
 
 Body:
 
