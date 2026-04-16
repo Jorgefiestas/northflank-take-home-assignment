@@ -4,7 +4,12 @@ import { k8sAppsApi, k8sCoreApi } from "./kubernetes.client";
 import { buildNamespace } from "./kubernetes.manifests";
 
 function getK8sErrorCode(error: any): number | undefined {
-  return error?.response?.statusCode || error?.statusCode || error?.body?.code;
+  return (
+    error?.code ||
+    error?.response?.statusCode ||
+    error?.statusCode ||
+    error?.body?.code
+  );
 }
 
 export async function ensureNamespace(namespace: string) {

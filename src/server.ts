@@ -11,7 +11,7 @@ const app = Fastify();
 app.setErrorHandler(handleAppError);
 app.register(githubRoutes, { prefix: "/github" });
 app.register(kubernetesRoutes, { prefix: "/kubernetes" });
-app.register(deploymentRoutes, { prefix: "/deployments" });
+app.register(deploymentRoutes, { prefix: "/deployment" });
 
 app.get("/health", async () => {
   return { status: "ok" };
